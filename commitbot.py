@@ -38,21 +38,30 @@ class CommitBot(XMPPHandler):
         text = []
         html = []
         link = r"<a href='%s' name='%s'>%s</a>"
+        text.append('New commits in %s:\n' % json.dumps(data))
         
-        text.append('New commits in %s:\n' % data['repository']['url'])
-        html.append("New commits in " \
-                        "<a href='%s'>%s</a>:<br/>" % \
+        try:
+            html.append("New commits by %s:<br />" %
+                        (data['author'],
+                         data['message']))
+            html.append("Changed files:<br />")
+            for c in data['changed_files']:
+                html.append('%s | %s<br />' % (c[0], c[1]))
+                
+        except:
+            html.append("New commits in <a href='%s'>%s</a>:<br/>" %
                         (data['repository']['url'],
                          data['repository']['name']))
 
-        for c in data['commits']:
-            text.append('%s | %s | %s\n' % (c['message'],
-                                            c['author']['email'], 
-                                            c['url']))
-            ltxt = link % (c['url'], c['id'], c['id'][:7])
-            html.append('%s | %s | %s<br />' % (c['message'],
-                                                c['author']['email'],
-                                                ltxt))
+            for c in data['commits']:
+                text.append('%s | %s | %s\n' % (c['message'],
+                                                c['author']['email'], 
+                                                c['url']))
+                ltxt = link % (c['url'], c['id'], c['id'][:7])
+                html.append('%s | %s | %s<br />' % (c['message'],
+                                                    c['author']['email'],
+                                                    ltxt))
+
         msg = domish.Element((None, 'message'))
         msg['to'] = self.room
         msg['type'] = 'groupchat'
@@ -75,6 +84,9 @@ class WebHook(resource.Resource):
         return "commitbot ready to rock!"
 
     def render_POST(self, req):
-        data = json.loads(req.args['payload'][0])
+	try:
+		data = json.loads(req.args['commit'][0])
+	except:
+		data = json.loads(req.args['payload'][0])
         self.bot.notify(data)
         return ""
