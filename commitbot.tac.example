@@ -4,6 +4,7 @@ from twisted.application import service, internet
 from twisted.web import server
 from twisted.words.protocols.jabber import jid
 from wokkel.client import XMPPClient
+from wokkel.ping import PingHandler
 
 from commitbot import CommitBot, WebHook
 
@@ -12,6 +13,9 @@ application = service.Application('commitbot')
 
 client = XMPPClient(jid.internJID('user@example.com'), 'password')
 client.logTraffic = True
+
+ping = PingHandler()
+ping.setHandlerParent(client)
 
 #In the next line, replace None with the password, for a protected room
 bot = CommitBot('room@chat.example.com', 'gitbot', None)
