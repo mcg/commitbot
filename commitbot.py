@@ -6,7 +6,7 @@ from wokkel.xmppim import AvailablePresence, Presence
 
 import simplejson as json
 
-
+MAX_COMMITS = 10
 NS_MUC = 'http://jabber.org/protocol/muc'
 NS_XHTML_IM = 'http://jabber.org/protocols/xhtml-im'
 NS_XHTML_W3C = 'http://www.w3.org/1999/xhtml'
@@ -38,22 +38,30 @@ class CommitBot(XMPPHandler):
         text = []
         html = []
         link = r"<a href='%s' name='%s'>%s</a>"
-        text.append('New commits in %s:\n' % json.dumps(data))
         
         try:
-            html.append("New commits by %s:<br />" %
+            ltxt = link % (data['changeset_url'], data['revision'], data['revision'])
+            html.append("New commits by %s:<br />%s | %s<br />" %
                         (data['author'],
-                         data['message']))
+                         data['message'],
+                         ltxt))
+                        
             html.append("Changed files:<br />")
+            i = 0
             for c in data['changed_files']:
+                i += 1
                 html.append('%s | %s<br />' % (c[0], c[1]))
+                if i == MAX_COMMITS:
+                    html.append("<br />Too many commits, truncated. Showing %s of %s commits" % (i, len(data['commits'])))
+                    break
                 
         except:
             html.append("New commits in <a href='%s'>%s</a>:<br/>" %
                         (data['repository']['url'],
                          data['repository']['name']))
-
+            i = 0
             for c in data['commits']:
+                i += 1
                 text.append('%s | %s | %s\n' % (c['message'],
                                                 c['author']['email'], 
                                                 c['url']))
@@ -61,6 +69,9 @@ class CommitBot(XMPPHandler):
                 html.append('%s | %s | %s<br />' % (c['message'],
                                                     c['author']['email'],
                                                     ltxt))
+                if i == MAX_COMMITS:
+                    html.append("<br />Too many commits, truncated. Showing %s of %s commits" % (i, len(data['commits'])))
+                    break
 
         msg = domish.Element((None, 'message'))
         msg['to'] = self.room
